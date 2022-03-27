@@ -8,6 +8,7 @@ Created on Sat Mar 26 16:01:36 2022
 # Import libraries
 import sqlite3 as sql
 from os.path import exists
+from datetime import datetime
 
 
 def is_dataset_available(directory = 'WeatherEvents_Jan2016-Dec2021.csv'):
@@ -50,6 +51,8 @@ def execute_scripts_from_file(file_path, cursor):
         except sql.OperationalError as err:
             print(f'Command skipped because: {err}')
 
+def import_data(table_name, dataframe):
+    return None
 
 if __name__ == "__main__":
     try: 

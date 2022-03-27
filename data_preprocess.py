@@ -84,9 +84,6 @@ def preprocess_db_import(dataframe):
     df_dict['weather_type'] = prepare_for_db_import(dataframe, 
                                                     'Type', 
                                                     drop_duplicates = True)
-    df_weather_type = prepare_for_db_import(dataframe, 
-                                                    'Type', 
-                                                    drop_duplicates = True)
     print(f'{datetime.now()}\tPreparing data for DB import\tweather_severity')
     df_dict['weather_severity'] = prepare_for_db_import(dataframe, 
                                                         'Severity', 
@@ -127,7 +124,10 @@ def preprocess_db_import(dataframe):
                                               cols_to_relate = ('Severity','Severity'),
                                               df_to_relate = df_dict['weather_severity'])
     
-    return df_dict, df_weather_type
+    return df_dict
+
+def save_prepared_dataframes(df_dict):
+    return None
 
 if __name__ == "__main__":
     try:
