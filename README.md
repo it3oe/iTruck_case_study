@@ -1,2 +1,2 @@
 # iTruck_case_study
-Case study on US Weather Events
+Interview case study on US Weather Events
