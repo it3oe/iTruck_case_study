@@ -161,6 +161,8 @@ def save_prepared_dataframes(df_dict):
     return None
 
 if __name__ == "__main__":
+    INCH_TO_CM = 2.54
+    
     try:
         dataset_filename = 'WeatherEvents_Jan2016-Dec2021.csv'
         assert is_dataset_available(dataset_filename)
@@ -168,9 +170,21 @@ if __name__ == "__main__":
         print(f'{datetime.now()}\tLoading data')
         df_raw = pd.read_csv(dataset_filename)
         
+        
+        print(f'{datetime.now()}\tData analysis\n')
+    
+        print(f'Columns: \n{(", ").join(df_raw.columns)}\n')
+        
+        print(f'Most common wheather events: \n{df_raw.groupby(["Type","Severity"]).size().sort_values(ascending = False)}\n')
+        
+        print(f'Top 5 rainy cities [cm]:\n{(df_raw[df_raw["Type"] == "Rain"].groupby(["State","County","City"])["Precipitation(in)"].sum()*INCH_TO_CM).nlargest()}\n')
+        
+        print(f'Missing values:\n{find_missing_values(df_raw)}\n')
+        
         df = preprocess_missing_values(df_raw)
+        df.loc[:,'Precipitation(in)'] *= INCH_TO_CM
         
         df_dict = preprocess_db_import(df, save_to_csv = True)
         
-    except AssertionError:
-        print('Missing dataset file in directory!\nDownload dataset from Kaggle first!')
+    except AssertionError as e:
+        print(f'Missing dataset file in directory!\nDownload dataset from Kaggle first!\n{e}')
