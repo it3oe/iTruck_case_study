@@ -7,7 +7,6 @@ Created on Mon Mar 28 22:39:41 2022
 
 import db_setup
 import pandas as pd
-import matplotlib.pyplot as plt
 import numpy as np
 
 database_name = 'weather.db'
@@ -28,16 +27,14 @@ sql_query = """
 
 df = pd.read_sql(sql_query, db_connection)
 
-
-# ax = df.plot.scatter(x = 'longitude_rounded',
-#                     y = 'latitude_rounded',
-#                     c = 'total_precipitation',
-#                     # s = 'total_events',
-#                     colormap = 'viridis_r')
-
 ax2 = df.plot.hexbin(x = 'longitude_rounded',
                     y = 'latitude_rounded',
                     C = 'total_precipitation',
                     colormap = 'viridis_r',
-                    reduce_C_function = np.max,
-                    gridsize = 35)
+                    reduce_C_function = np.mean,
+                    gridsize = 30,
+                    title = 'Priemerný počet zrážok v USA',
+                    xlabel = 'Zemepisná šírka',
+                    ylabel = 'Zemepisná dĺžka',
+                    figsize = (9,6),
+                    grid = True)

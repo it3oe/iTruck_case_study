@@ -47,7 +47,9 @@ def preprocess_missing_values(dataframe):
     
     return df_new
 
+# Function for 
 def prepare_for_db_import(dataframe, cols_to_keep, cols_to_relate = None, df_to_relate = None, drop_duplicates = False):
+    
     df_import = dataframe[cols_to_keep].copy()
     
     if drop_duplicates:
@@ -62,7 +64,8 @@ def prepare_for_db_import(dataframe, cols_to_keep, cols_to_relate = None, df_to_
     df_import.reset_index(drop=True, inplace = True)
     return df_import.to_frame() if type(df_import) == pd.Series else df_import
 
-def preprocess_db_import(dataframe, save_to_csv = False):
+def preprocess_db_import(dataframe, save_to_csv = False): 
+    
     print(f'{datetime.now()}\tPreparing data for DB import')
     df_dict = dict()
     
@@ -183,6 +186,7 @@ if __name__ == "__main__":
         
         df = preprocess_missing_values(df_raw)
         df.loc[:,'Precipitation(in)'] *= INCH_TO_CM
+        df['Precipitation(in)'] = pd.to_numeric(df['Precipitation(in)'], downcast = 'float')
         
         df_dict = preprocess_db_import(df, save_to_csv = True)
         

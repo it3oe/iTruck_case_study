@@ -13,18 +13,7 @@ import pandas as pd
 
 
 def is_dataset_available(directory = 'WeatherEvents_Jan2016-Dec2021.csv'):
-    """
-    Parameters
-    ----------
-    directory : String, optional
-        Directory path to weather events dataset. The default is 'WeatherEvents_Jan2016-Dec2021.csv'.
-
-    Returns
-    -------
-    Bool
-        Returns True if file is in directory.
-
-    """
+    
     return exists(f'{directory}')
 
 def connect_database(database_path):
@@ -55,6 +44,7 @@ def execute_scripts_from_file(file_path, cursor):
             print(f'Command skipped because: {err}')
 
 def import_data_from_csv(sql_connection, source_path):
+    
     IMPORT_ORDER = ['weather_type', 'weather_severity', 'us_state', 'county', 'city', 'station', 'event']
     print(f'{datetime.now()}\tImporting data into database')
     
@@ -68,6 +58,7 @@ def import_data_from_csv(sql_connection, source_path):
             i += 1
         
 def get_table_columns(sql_connection, table):
+    
     columns = None
     try:
         cursor = sql_connection.execute(f'select * from {table}')
@@ -78,6 +69,7 @@ def get_table_columns(sql_connection, table):
     return columns
 
 def get_table_types(sql_connection, table, columns):
+    
     cursor = None
     
     temp = [f'typeOf({val})' for val in columns]
@@ -94,8 +86,34 @@ def get_table_types(sql_connection, table, columns):
         print(f'Database connection has failed!\n{err}')
     
     return list(zip(columns,row))
+
+def get_id(sql_connection, table, value = None):
+    
+    idx = None
+    try:
+        if value is None:
+            sql_commnad = f"""
+                select max(id) from {table}
+            
+            """
+            cursor = sql_connection.execute(sql_commnad)
+        else:
+            val = value[1]
+            if type(val) is str:
+                val = '"'+val+'"'
+            sql_commnad = f"""
+                select id from {table} where {value[0]} = {val}
+            """
+            cursor = sql_connection.execute(sql_commnad)
+        idx = cursor.fetchone()
+    except sql.Error as err :
+        print(f'Database connection has failed!\n{err}')
+    
+    return idx if idx is None else idx[0]
+
         
-def import_single_record(sql_connection, table, row):
+def insert_single_record(sql_connection, table, row):
+    
     cursor = None
     dtype_map = {'integer': int,
                  'text': str,
@@ -128,6 +146,53 @@ def import_single_record(sql_connection, table, row):
     
     return cursor if cursor is None else cursor.lastrowid
 
+def insert_single_event(sql_connection, row):
+    
+    table_order = ['us_state','county','city','station','weather_type','weather_severity', 'event']
+    table_row = {t: dict() for t in table_order}
+    
+    table_row['event']['row'] = None, row[0], row[3], row[4], row[5], row[1], row[2], row[7]
+    table_row['event']['ref'] = None
+    table_row['event']['idx'] = ('event_id',1)
+    
+    table_row['station']['row'] = None, row[7], row[8], row[9], row[13], row[10]
+    table_row['station']['ref'] = ('event', 7)
+    table_row['station']['idx'] = ('airport_code', 1)   
+    
+    table_row['city']['row'] = None, row[10], row[6], row[11]
+    table_row['city']['ref'] = ('station', 5)
+    table_row['city']['idx'] = ('city_name', 1)   
+    
+    table_row['county']['row'] = None, row[11], row[12]
+    table_row['county']['ref'] = ('city', 3) 
+    table_row['county']['idx'] = ('county_name', 1) 
+    
+    table_row['us_state']['row'] = None, row[12]
+    table_row['us_state']['ref'] = ('county', 2)
+    table_row['us_state']['idx'] = ('state_code', 1)   
+    
+    table_row['weather_type']['row'] = None, row[1]
+    table_row['weather_type']['ref'] = ('event', 5)
+    table_row['weather_type']['idx'] = ('type_name', 1)   
+    
+    table_row['weather_severity']['row'] = None, row[2]
+    table_row['weather_severity']['ref'] = ('event', 6)
+    table_row['weather_severity']['idx'] = ('severity_type', 1)    
+    
+    for t in table_order:
+        ref_id = get_id(sql_connection, t, value = (table_row[t]['idx'][0], table_row[t]['row'][table_row[t]['idx'][1]]))
+        if ref_id is None:
+            tuple_as_list = list(table_row[t]['row'])
+            tuple_as_list[0] = get_id(sql_connection, t) + 1
+            ref_id = insert_single_record(sql_connection, t, tuple(tuple_as_list))
+            
+        if table_row[t]['ref'] is not None:
+            tuple_as_list = list(table_row[table_row[t]['ref'][0]]['row'])
+            tuple_as_list[table_row[t]['ref'][1]] = ref_id
+            table_row[table_row[t]['ref'][0]]['row'] = tuple(tuple_as_list)
+            
+    return ref_id
+
 if __name__ == "__main__":
     try: 
         dataset_filename = 'WeatherEvents_Jan2016-Dec2021.csv'
@@ -138,16 +203,22 @@ if __name__ == "__main__":
         print(f'{datetime.now()}\tCheck if dataset available\t{dataset_filename}')
         assert is_dataset_available(dataset_filename)
         
-        db_connection = connect_database(database_name)
-        cursor = db_connection.cursor()
+        sql_connection = connect_database(database_name)
+        cursor = sql_connection.cursor()
         
         execute_scripts_from_file(table_setup_filename, cursor)
         
-        import_data_from_csv(db_connection, import_data_path)
+        import_data_from_csv(sql_connection, import_data_path)
         
-        insert_table = 'station'
-        insert_row = (2071,'AAAA',35.0,100.0,0,0)
-        insert_result = import_single_record(db_connection, insert_table, insert_row)
+        # insert_table = 'station'
+        # insert_row_id = get_id(sql_connection, insert_table) + 1 
+        # insert_row = (insert_row_id,'AAAA',35.0,100.0,0,0)
+        # insert_result = insert_single_record(sql_connection, insert_table, insert_row)
+        
+        insert_event = ('W-1000000','Test','Test','2021-04-01 16:54:00','2021-04-01 20:34:00',1,'SK/Mountain','TST1',00.0000,-111.1111,'Test','Test','GG',11111)
+        idx = insert_single_event(sql_connection, insert_event)
+        
+        idx_test = get_id(sql_connection, 'event', value = ('event_id', insert_event[0]))
         
     except AssertionError as e:
         print(f'Missing dataset file in directory!\nDownload dataset from Kaggle first!\n{e}')
