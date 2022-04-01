@@ -48,16 +48,18 @@ def preprocess_missing_values(dataframe):
     
     return df_new
 
-# Function for 
+# Function for database import
 def prepare_for_db_import(dataframe, cols_to_keep, cols_to_relate = None, df_to_relate = None, drop_duplicates = False):
     
     df_import = dataframe[cols_to_keep].copy()
     
+    # Check if duplicates are allowed
     if drop_duplicates:
         df_import.drop_duplicates(inplace = True)
         
+    # Check if there are any relations to other dataframes
     if (type(None) != type(cols_to_relate)) and (type(None) != type(df_to_relate)):
-        
+        # Replace values for foreign keys
         replace_dict = dict(zip(df_to_relate[cols_to_relate[1]], df_to_relate.index))
         # df_import.replace({cols_to_relate[0]: replace_dict}, inplace = True)
         df_import.loc[:, cols_to_relate[0]] = df_import[cols_to_relate[0]].apply(lambda x: replace_dict[x])
