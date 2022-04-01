@@ -91,6 +91,7 @@ def get_id(sql_connection, table, value = None):
     
     idx = None
     try:
+        # If value is not given, returns the last id
         if value is None:
             sql_commnad = f"""
                 select max(id) from {table}
@@ -98,6 +99,7 @@ def get_id(sql_connection, table, value = None):
             """
             cursor = sql_connection.execute(sql_commnad)
         else:
+            # Search for record based on column and value
             val = value[1]
             if type(val) is str:
                 val = '"'+val+'"'
@@ -119,12 +121,13 @@ def insert_single_record(sql_connection, table, row):
                  'text': str,
                  'real': float}
     
+    # For given table get all columns and its data type
     columns = get_table_columns(sql_connection, table)
-    
     table_dtypes = get_table_types(sql_connection, table, columns)
     
     print(f'{datetime.now()}\tInserting row {row} into table {table}')    
     try:
+        # Check if row size and data type is same
         assert len(columns) == len(row)
         for dt, val in zip(table_dtypes, row):
             assert dtype_map[dt[1]] == type(val)
@@ -148,9 +151,13 @@ def insert_single_record(sql_connection, table, row):
 
 def insert_single_event(sql_connection, row):
     
+    # Iterate over related tables in given order - Bottom->Up
     table_order = ['us_state','county','city','station','weather_type','weather_severity', 'event']
     table_row = {t: dict() for t in table_order}
     
+    # For each table set possile row to insert
+    # Each related table has a reference UP
+    # Each table has a columns in which is seach done
     table_row['event']['row'] = None, row[0], row[3], row[4], row[5], row[1], row[2], row[7]
     table_row['event']['ref'] = None
     table_row['event']['idx'] = ('event_id',1)
@@ -180,12 +187,15 @@ def insert_single_event(sql_connection, row):
     table_row['weather_severity']['idx'] = ('severity_type', 1)    
     
     for t in table_order:
+        # For each table we check if values exists
         ref_id = get_id(sql_connection, t, value = (table_row[t]['idx'][0], table_row[t]['row'][table_row[t]['idx'][1]]))
         if ref_id is None:
+            # If value does not exist we create a new row for given table
             tuple_as_list = list(table_row[t]['row'])
             tuple_as_list[0] = get_id(sql_connection, t) + 1
             ref_id = insert_single_record(sql_connection, t, tuple(tuple_as_list))
             
+        # If table has a reference, we change original value for foreign key
         if table_row[t]['ref'] is not None:
             tuple_as_list = list(table_row[table_row[t]['ref'][0]]['row'])
             tuple_as_list[table_row[t]['ref'][1]] = ref_id
@@ -215,10 +225,12 @@ if __name__ == "__main__":
         # insert_row = (insert_row_id,'AAAA',35.0,100.0,0,0)
         # insert_result = insert_single_record(sql_connection, insert_table, insert_row)
         
-        insert_event = ('W-1000000','Test','Test','2021-04-01 16:54:00','2021-04-01 20:34:00',1,'SK/Mountain','TST1',00.0000,-111.1111,'Test','Test','GG',11111)
+        insert_event = ('W-10000000','Test','Test','2021-04-01 16:54:00','2021-04-01 20:34:00',1,'SK/Mountain','TST1',00.0000,-111.1111,'Test','Test','GG',11111)
         idx = insert_single_event(sql_connection, insert_event)
         
         idx_test = get_id(sql_connection, 'event', value = ('event_id', insert_event[0]))
+        
+        assert idx == idx_test
         
     except AssertionError as e:
         print(f'Missing dataset file in directory!\nDownload dataset from Kaggle first!\n{e}')

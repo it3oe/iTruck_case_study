@@ -8,6 +8,7 @@ Created on Mon Mar 28 22:39:41 2022
 import db_setup
 import pandas as pd
 import numpy as np
+import matplotlib.pyplot as plt
 
 database_name = 'weather.db'
 db_connection = db_setup.connect_database(database_name)
@@ -27,14 +28,16 @@ sql_query = """
 
 df = pd.read_sql(sql_query, db_connection)
 
-ax2 = df.plot.hexbin(x = 'longitude_rounded',
+plt1, ax1 = plt.subplots()
+ax1 = df.plot.hexbin(x = 'longitude_rounded',
                     y = 'latitude_rounded',
                     C = 'total_precipitation',
                     colormap = 'viridis_r',
                     reduce_C_function = np.mean,
                     gridsize = 30,
-                    title = 'Priemerný počet zrážok v USA',
-                    xlabel = 'Zemepisná šírka',
-                    ylabel = 'Zemepisná dĺžka',
+                    title = 'Average precipitation in USA',
+                    xlabel = 'Latitude',
+                    ylabel = 'Longitude',
                     figsize = (9,6),
-                    grid = True)
+                    grid = True,
+                    ax = ax1)

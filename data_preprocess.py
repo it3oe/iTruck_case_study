@@ -28,6 +28,7 @@ def preprocess_missing_values(dataframe):
     df_new = dataframe.copy()
     missing_cols = find_missing_values(df_new)
     
+    # For each column with missing value create a replacement
     for col in missing_cols.index:
         print(f'{datetime.now()}\tData preprocessing\t{col}')
         if col == 'ZipCode':
